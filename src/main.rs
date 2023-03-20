@@ -1,5 +1,6 @@
 use yew::prelude::*;
 
+pub mod Bfn;
 mod Components;
 
 #[function_component(App)]

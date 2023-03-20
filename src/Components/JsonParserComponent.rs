@@ -6,11 +6,7 @@ use yew::{function_component, use_state, Callback, Html, InputEvent};
 
 use web_sys::HtmlTextAreaElement;
 
-#[derive(Serialize, Deserialize)]
-struct MyData {
-    field1: String,
-    field2: i32,
-}
+use crate::Bfn::BfnData::BfnJsonRoot;
 
 #[function_component(JsonParserForm)]
 pub fn json_parse_form() -> Html {
@@ -25,10 +21,10 @@ pub fn json_parse_form() -> Html {
             let input: HtmlTextAreaElement = event.target_unchecked_into();
             let value = input.value();
 
-            let parsed: Result<MyData, serde_json::Error> = serde_json::from_str(&value);
+            let parsed: Result<BfnJsonRoot, serde_json::Error> = serde_json::from_str(&value);
 
             let set_str = match parsed {
-                Ok(data) => format!("{}", data.field1),
+                Ok(data) => format!("{}", data.version),
                 Err(e) => format!("{}", e),
             };
             json_clone.set(value);
