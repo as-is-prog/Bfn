@@ -1,1 +1,1 @@
-pub mod JsonParserComponent;
+pub mod json_parser_component;

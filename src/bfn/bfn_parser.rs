@@ -1,6 +1,6 @@
 use serde_json;
 
-use super::BfnData::{BfnJsonDefine, BfnJsonRoot, BfnJsonValue};
+use super::bfn_data::{BfnJsonDefine, BfnJsonRoot, BfnJsonValue};
 
 pub fn parse_json(json: &str) -> Result<BfnJsonRoot, serde_json::Error> {
     let parsed: Result<BfnJsonRoot, serde_json::Error> = serde_json::from_str(&json);
@@ -21,7 +21,10 @@ fn convert_define_to_instance(root: BfnJsonRoot) -> BfnJsonRoot {
 
     for child in &root.children {
         match child {
-            BfnJsonValue::BfnJsonInstance { name, define_name } => {
+            BfnJsonValue::BfnJsonInstance {
+                name: _,
+                define_name,
+            } => {
                 let define: &BfnJsonDefine =
                     defines.iter().find(|x| &x.name == define_name).unwrap();
 

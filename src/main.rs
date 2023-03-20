@@ -1,14 +1,14 @@
 use yew::prelude::*;
 
-pub mod Bfn;
-mod Components;
+pub mod bfn;
+mod components;
 
 #[function_component(App)]
 fn app() -> Html {
     html! {
         <>
             <h1>{ "Hello World" }</h1>
-            <Components::JsonParserComponent::JsonParserForm />
+            <components::json_parser_component::JsonParserForm />
         </>
     }
 }

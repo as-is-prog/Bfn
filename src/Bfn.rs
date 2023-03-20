@@ -1,2 +1,2 @@
-pub mod BfnData;
-pub mod BfnParser;
+pub mod bfn_data;
+pub mod bfn_parser;

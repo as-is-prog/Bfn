@@ -4,7 +4,7 @@ use yew::{function_component, use_state, Callback, Html, InputEvent};
 
 use web_sys::HtmlTextAreaElement;
 
-use crate::Bfn::BfnParser;
+use crate::bfn::bfn_parser;
 
 #[function_component(JsonParserForm)]
 pub fn json_parse_form() -> Html {
@@ -19,7 +19,7 @@ pub fn json_parse_form() -> Html {
             let input: HtmlTextAreaElement = event.target_unchecked_into();
             let value = input.value();
 
-            let parsed = BfnParser::parse_json(&value);
+            let parsed = bfn_parser::parse_json(&value);
 
             let set_str = match parsed {
                 Ok(data) => format!("{:?}", data),
