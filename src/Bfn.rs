@@ -1,2 +1,2 @@
 pub mod BfnData;
-pub mod Parser;
+pub mod BfnParser;

@@ -1,12 +1,10 @@
-use serde::{Deserialize, Serialize};
-
 use yew::html;
 use yew::prelude::*;
 use yew::{function_component, use_state, Callback, Html, InputEvent};
 
 use web_sys::HtmlTextAreaElement;
 
-use crate::Bfn::BfnData::BfnJsonRoot;
+use crate::Bfn::BfnParser;
 
 #[function_component(JsonParserForm)]
 pub fn json_parse_form() -> Html {
@@ -21,10 +19,10 @@ pub fn json_parse_form() -> Html {
             let input: HtmlTextAreaElement = event.target_unchecked_into();
             let value = input.value();
 
-            let parsed: Result<BfnJsonRoot, serde_json::Error> = serde_json::from_str(&value);
+            let parsed = BfnParser::parse_json(&value);
 
             let set_str = match parsed {
-                Ok(data) => format!("{}", data.version),
+                Ok(data) => format!("{:?}", data),
                 Err(e) => format!("{}", e),
             };
             json_clone.set(value);

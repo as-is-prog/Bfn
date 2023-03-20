@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct BfnJsonRoot {
     pub version: String,
     pub name: Option<String>,
@@ -8,13 +8,13 @@ pub struct BfnJsonRoot {
     pub children: Vec<BfnJsonValue>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BfnJsonDefine {
     pub name: String,
     pub children: Vec<BfnJsonValue>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum BfnJsonValue {
     BfnJsonInstance {
         name: String,
