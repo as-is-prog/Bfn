@@ -1,12 +1,11 @@
-use core::panic;
 use gloo_file::{callbacks::FileReader, File};
 use wasm_bindgen::JsCast;
 use web_sys::EventTarget;
 use web_sys::HtmlInputElement;
 use yew::events::Event;
 use yew::prelude::*;
+use yew::InputEvent;
 use yew::{html, Component, Context, Html};
-use yew::{Callback, InputEvent};
 
 use web_sys::HtmlTextAreaElement;
 
@@ -14,12 +13,16 @@ use crate::bfn::bfn_parser;
 
 pub enum UIMsg {
     JsonChanged(String),
+    FileSelected(Option<File>),
+    FileLoaded(Vec<u8>),
 }
 
 pub struct BfnParserForm {
     json_str: String,
     parsed_str: String,
-    read_tasks: Vec<(String, ())>,
+    visualize_vec: Vec<(String, String)>,
+    file_vec: Vec<u8>,
+    read_tasks: Vec<(String, FileReader)>,
 }
 
 impl Component for BfnParserForm {
@@ -28,25 +31,71 @@ impl Component for BfnParserForm {
 
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
-            json_str: "".to_string(),
+            json_str: DEFAULT_JSON_VALUE.to_string(),
             parsed_str: "".to_string(),
+            visualize_vec: Vec::new(),
+            file_vec: Vec::new(),
             read_tasks: Vec::new(),
         }
     }
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+        fn update_visualize(form: &mut BfnParserForm) -> bool {
+            let json_parsed_value = bfn_parser::parse_json(&form.json_str);
+
+            match json_parsed_value {
+                Ok(data) => {
+                    let visual_pair =
+                        bfn_parser::convert_binary_to_bfn_visualize_pair(&form.file_vec, &data);
+                    let set_str = visual_pair
+                        .iter()
+                        .map(|f| format!("{}: {}", f.0, f.1))
+                        .collect::<Vec<_>>()
+                        .join("¥n");
+
+                    form.visualize_vec = visual_pair;
+                    form.parsed_str = set_str;
+                    return true;
+                }
+                Err(e) => {
+                    form.parsed_str = format!("{}", e);
+                    return true;
+                }
+            };
+        }
+
         match msg {
             UIMsg::JsonChanged(value) => {
-                let parsed = bfn_parser::parse_json(&value);
-
-                let set_str = match parsed {
-                    Ok(data) => format!("{:?}", data),
-                    Err(e) => format!("{}", e),
-                };
                 self.json_str = value;
-                self.parsed_str = set_str;
+                return update_visualize(self);
+            }
+            UIMsg::FileSelected(file) => {
+                match file {
+                    Some(f) => {
+                        let link = _ctx.link().clone();
+                        log::info!("Update: {:?}", f);
 
-                return true; // Re-render
+                        let read_task = {
+                            gloo_file::callbacks::read_as_bytes(&f, move |res| {
+                                link.send_message(UIMsg::FileLoaded(res.unwrap()));
+                            })
+                        };
+
+                        self.read_tasks.push((f.name(), read_task));
+
+                        return true;
+                    }
+                    None => {
+                        return false;
+                    }
+                };
+            }
+            UIMsg::FileLoaded(d) => {
+                log::info!("loaded: {:?}", d);
+                self.read_tasks.remove(0);
+                self.file_vec = d;
+
+                return update_visualize(self);
             }
         }
     }
@@ -59,42 +108,179 @@ impl Component for BfnParserForm {
             return UIMsg::JsonChanged(value);
         });
 
-        let my_onchange = {
-            Callback::from(move |e: Event| {
-                // When events are created the target is undefined, it's only
-                // when dispatched does the target get added.
-                let target: Option<EventTarget> = e.target();
-                // Events can bubble so this listener might catch events from child
-                // elements which are not of type HtmlInputElement
-                let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
+        let my_onchange = _ctx.link().callback(move |e: Event| {
+            let target: Option<EventTarget> = e.target();
+            let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
 
-                if let Some(files) = input.unwrap().files() {
-                    let file = files.get(0);
-                    match file {
-                        Some(f) => {
-                            let g_file = File::from(f);
-                            log::info!("Update: {:?}", g_file);
-                            gloo_file::callbacks::read_as_bytes(&g_file, move |res| {
-                                log::info!("callback: {:?}", res);
-                            });
-                        }
-                        None => {}
+            if let Some(files) = input.unwrap().files() {
+                let file = files.get(0);
+                match file {
+                    Some(f) => {
+                        let g_file = File::from(f);
+                        log::info!("Update: {:?}", g_file);
+                        return UIMsg::FileSelected(Some(g_file));
                     }
+                    None => {}
                 }
-            })
-        };
+            }
+
+            return UIMsg::FileSelected(None);
+        });
 
         html! {
           <form>
-            <label for="title" class="form-label">{"タイトル"}</label>
-            <input type="file" onchange={my_onchange} />
+            <label class="form-label">{"ファイル選択"}</label>
+            <input type="file" onchange={my_onchange} /><br/>
+            <br/>
+            <label class="form-label">{"Json入力"}</label>
             <div>
-                <textarea oninput={my_oninput} value={self.json_str.clone()} />
+                <textarea oninput={my_oninput} value={self.json_str.clone()} style={"height: 300px; width: 380px;"} />
             </div>
+            <br/>
+            <label class="form-label">{"結果表示"}</label>
             <div>
-              {self.parsed_str.clone()}
+                <ul>
+                {self.visualize_vec.iter().map(|v| html! {
+                    <li>{v.0.clone()}{":"}{v.1.clone()}</li>
+                }).collect::<Html>()}
+                </ul>
             </div>
           </form>
         }
     }
 }
+
+const DEFAULT_JSON_VALUE: &str = r#"{
+    "version": "0",
+    "name": "BitmapFormat",
+    "defines": [
+        {
+            "name": "FileHeader",
+            "children": [
+                {
+                    "BfnJsonByte": {
+                        "name": "FileType",
+                        "len": 2
+                    }
+                },
+                {
+                    "BfnJsonNumber": {
+                        "name": "FileSize",
+                        "len": 4
+                    }
+                },
+                {
+                    "BfnJsonNumber": {
+                        "name": "Reserved",
+                        "len": 4
+                    }
+                },
+                {
+                    "BfnJsonNumber": {
+                        "name": "DataOffset",
+                        "len": 4
+                    }
+                }
+            ]
+        },
+        {
+            "name": "InfoHeader",
+            "children": [
+                {
+                    "BfnJsonNumber": {
+                        "name": "InfoHeaderSize",
+                        "len": 4
+                    }
+                },
+                {
+                    "BfnJsonNumber": {
+                        "name": "ImageWidth",
+                        "len": 4
+                    }
+                },
+                {
+                    "BfnJsonNumber": {
+                        "name": "ImageHeight",
+                        "len": 4
+                    }
+                },
+                {
+                    "BfnJsonNumber": {
+                        "name": "Planes",
+                        "len": 2
+                    }
+                },
+                {
+                    "BfnJsonNumber": {
+                        "name": "BitCount",
+                        "len": 2
+                    }
+                },
+                {
+                    "BfnJsonNumber": {
+                        "name": "Compression",
+                        "len": 4
+                    }
+                },
+                {
+                    "BfnJsonNumber": {
+                        "name": "ImageSize",
+                        "len": 4
+                    }
+                },
+                {
+                    "BfnJsonNumber": {
+                        "name": "XPixelPerMeter",
+                        "len": 4
+                    }
+                },
+                {
+                    "BfnJsonNumber": {
+                        "name": "YPixelPerMeter",
+                        "len": 4
+                    }
+                },
+                {
+                    "BfnJsonNumber": {
+                        "name": "ColorUsed",
+                        "len": 4
+                    }
+                },
+                {
+                    "BfnJsonNumber": {
+                        "name": "ColorImportant",
+                        "len": 4
+                    }
+                }
+            ]
+        }
+    ],
+    "children": [
+        {
+            "BfnJsonInstance": {
+                "name": "FileHeader",
+                "define_name": "FileHeader"
+            }
+        },
+        {
+            "BfnJsonInstance": {
+                "name": "InfoHeader",
+                "define_name": "InfoHeader"
+            }
+        },
+        {
+            "BfnJsonAnchorLenMultipleByte": {
+                "name": "ColorPalette",
+                "len": "ColorUsed",
+                "multiple_num": 4
+            }
+        },
+        {
+            "BfnJsonAnchorLenMultipleByte": {
+                "name": "ImageData",
+                "len": "ImageSize",
+                "multiple_num": 1
+            }
+        }
+    ]
+}"#;

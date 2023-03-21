@@ -7,7 +7,7 @@ mod components;
 fn app() -> Html {
     html! {
         <>
-            <h1>{ "Hello World" }</h1>
+            <h1>{ "Bfn - Binary format notation" }</h1>
             <components::bfn_parser_component::BfnParserForm />
         </>
     }

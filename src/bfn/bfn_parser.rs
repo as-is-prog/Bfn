@@ -52,7 +52,7 @@ pub fn convert_binary_to_bfn_visualize_pair(
     let mut ret: Vec<(String, String)> = Vec::new();
     let mut anchor_pair: Vec<(String, i32)> = Vec::new();
 
-    let mut bin_data_index = 0;
+    let mut bin_data_index: usize = 0;
 
     for child in &bfn_root.children {
         match child {
@@ -61,6 +61,10 @@ pub fn convert_binary_to_bfn_visualize_pair(
                 define_name: _,
             } => panic!("BfnJsonInstance is not allowed in convert_binary_to_bfn_visualize_pair"),
             BfnJsonValue::BfnJsonByte { name, len } => {
+                if bin_data.len() <= (bin_data_index + *len as usize) {
+                    return ret;
+                }
+
                 let mut value = String::new();
                 for _ in 0..*len {
                     value.push_str(&format!("{:02x}", bin_data[bin_data_index]));
@@ -69,6 +73,10 @@ pub fn convert_binary_to_bfn_visualize_pair(
                 ret.push((name.clone(), value));
             }
             BfnJsonValue::BfnJsonString { name, len } => {
+                if bin_data.len() <= (bin_data_index + *len as usize) {
+                    return ret;
+                }
+
                 let mut value = String::new();
                 for _ in 0..*len {
                     value.push_str(&format!("{}", bin_data[bin_data_index] as char));
@@ -77,6 +85,10 @@ pub fn convert_binary_to_bfn_visualize_pair(
                 ret.push((name.clone(), value));
             }
             BfnJsonValue::BfnJsonNumber { name, len } => {
+                if bin_data.len() <= (bin_data_index + *len as usize) {
+                    return ret;
+                }
+
                 let mut value = 0;
                 for i in 0..*len {
                     value += (bin_data[bin_data_index] as i32) << (i * 8);
@@ -87,6 +99,9 @@ pub fn convert_binary_to_bfn_visualize_pair(
             }
             BfnJsonValue::BfnJsonAnchorLenByte { name, len } => {
                 let anchor_len = find_anchor_len(len, &anchor_pair);
+                if bin_data.len() <= (bin_data_index + anchor_len as usize) {
+                    return ret;
+                }
 
                 let mut value = String::new();
                 for _ in 0..anchor_len {
@@ -101,6 +116,9 @@ pub fn convert_binary_to_bfn_visualize_pair(
                 len,
             } => {
                 let anchor_len = find_anchor_len(len, &anchor_pair) * multiple_num;
+                if bin_data.len() <= (bin_data_index + anchor_len as usize) {
+                    return ret;
+                }
 
                 let mut value = String::new();
                 for _ in 0..anchor_len {
@@ -111,6 +129,9 @@ pub fn convert_binary_to_bfn_visualize_pair(
             }
             BfnJsonValue::BfnJsonAnchorLenString { name, len } => {
                 let anchor_len = find_anchor_len(len, &anchor_pair);
+                if bin_data.len() <= (bin_data_index + anchor_len as usize) {
+                    return ret;
+                }
 
                 let mut value = String::new();
                 for _ in 0..anchor_len {
@@ -121,6 +142,9 @@ pub fn convert_binary_to_bfn_visualize_pair(
             }
             BfnJsonValue::BfnJsonAnchorLenNumber { name, len } => {
                 let anchor_len = find_anchor_len(len, &anchor_pair);
+                if bin_data.len() <= (bin_data_index + anchor_len as usize) {
+                    return ret;
+                }
 
                 let mut value = 0;
                 for i in 0..anchor_len {
